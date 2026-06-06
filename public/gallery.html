@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery – YourGallery</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="shortcut icon" href="/favicon.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="nav">
+        <a href="/">🏠 Home</a>
+        <a href="/gallery">📷 Gallery</a>
+        <a href="/upload">📤 Upload</a>
+        <a href="/logout">🚪 Logout</a>
+    </div>
+    
+    <div class="container">
+        <h1 class="text-center">All Photos</h1>
+        <div id="photoGrid" class="photo-grid">Loading...</div>
+    </div>
+
+    <script>
+        async function loadPhotos() {
+            try {
+                const res = await fetch('/api/photos');
+                const photos = await res.json();
+                const grid = document.getElementById('photoGrid');
+                if (photos.length === 0) {
+                    grid.innerHTML = '<p class="text-center">No photos yet. <a href="/upload">Upload the first one!</a></p>';
+                    return;
+                }
+                grid.innerHTML = photos.map(photo => `
+                    <div class="photo-card">
+                        <img src="${photo.image_path}" alt="Photo">
+                        <div class="photo-info">
+                            <strong>${escapeHtml(photo.uploader_name)}</strong>
+                            ${photo.caption ? `<p>${escapeHtml(photo.caption)}</p>` : ''}
+                            <small>${new Date(photo.uploaded_at).toLocaleDateString()}</small>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+                document.getElementById('photoGrid').innerHTML = '<p class="text-center">Error loading photos.</p>';
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        loadPhotos();
+    </script>
+</body>
+</html>

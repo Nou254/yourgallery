@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YourGallery – Share Your Moments</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="shortcut icon" href="/favicon.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>📸 YourGallery</h1>
+            <p>Share your precious moments with the world. Join our community of photo lovers.</p>
+            <div class="hero-buttons">
+                <a href="/register">Sign Up Free</a>
+                <a href="/login">Log In</a>
+            </div>
+        </div>
+
+        <h2 class="section-title">✨ Recent Uploads</h2>
+        <div id="previewGrid" class="preview-grid">
+            <p style="color: white;">Loading amazing photos...</p>
+        </div>
+        <p class="text-center" style="margin-top: 1.5rem; color: white;">
+            <a href="/register" style="color: white; font-weight: bold; text-decoration: underline;">Join now</a> to see the full gallery and share your own!
+        </p>
+    </div>
+
+    <footer>
+        &copy; 2026 YourGallery. Share the beauty.
+    </footer>
+
+    <script>
+        async function loadPreview() {
+            try {
+                const res = await fetch('/api/preview-photos');
+                const photos = await res.json();
+                const grid = document.getElementById('previewGrid');
+                if (photos.length === 0) {
+                    grid.innerHTML = '<p style="color: white;">No photos yet. Be the first to upload after registering!</p>';
+                    return;
+                }
+                grid.innerHTML = photos.map(photo => `
+                    <div class="preview-card">
+                        <img src="${photo.image_path}" alt="Preview photo" loading="lazy">
+                        <div class="preview-info">
+                            <strong>${escapeHtml(photo.uploader_name)}</strong><br>
+                            ${photo.caption ? escapeHtml(photo.caption) : ''}
+                            <div><small>${new Date(photo.uploaded_at).toLocaleDateString()}</small></div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+                document.getElementById('previewGrid').innerHTML = '<p style="color: white;">Unable to load previews. Please try again later.</p>';
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        loadPreview();
+    </script>
+</body>
+</html>

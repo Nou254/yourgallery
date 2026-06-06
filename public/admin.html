@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login – YourGallery</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .admin-login-container {
+            max-width: 450px;
+            margin: 50px auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .admin-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .admin-header h1 {
+            margin: 0;
+            font-size: 28px;
+            background: none;
+            -webkit-text-fill-color: white;
+            color: white;
+        }
+        .admin-header p {
+            margin: 10px 0 0;
+            opacity: 0.9;
+        }
+        .admin-form {
+            padding: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+        .alert {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-login-container">
+        <div class="admin-header">
+            <h1>Admin Panel</h1>
+            <p>Secure access for administrators only</p>
+        </div>
+        
+        <div class="admin-form">
+            <div id="alertMessage" class="alert"></div>
+            
+            <form id="adminLoginForm" action="/admin/login" method="POST">
+                <div class="form-group">
+                    <label>Admin Email:</label>
+                    <input type="email" name="email" required placeholder="darkhumor298@gmail.com">
+                </div>
+                
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" name="password" required placeholder="Enter your password">
+                </div>
+                
+                <button type="submit" class="login-btn">Login as Admin</button>
+            </form>
+            
+            <div class="back-link">
+                <a href="/">← Back to main site</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check for error message in URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('error');
+        const message = urlParams.get('message');
+        
+        if (error) {
+            const alertDiv = document.getElementById('alertMessage');
+            alertDiv.textContent = decodeURIComponent(error);
+            alertDiv.className = 'alert alert-error';
+        }
+        
+        if (message) {
+            const alertDiv = document.getElementById('alertMessage');
+            alertDiv.textContent = decodeURIComponent(message);
+            alertDiv.className = 'alert alert-success';
+        }
+        
+        // Handle form submission with AJAX for better UX
+        document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const email = formData.get('email');
+            const password = formData.get('password');
+            
+            const alertDiv = document.getElementById('alertMessage');
+            
+            try {
+                const response = await fetch('/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({ email, password })
+                });
+                
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else {
+                    const text = await response.text();
+                    alertDiv.textContent = text;
+                    alertDiv.className = 'alert alert-error';
+                }
+            } catch (err) {
+                alertDiv.textContent = 'Login failed. Please try again.';
+                alertDiv.className = 'alert alert-error';
+            }
+        });
+    </script>
+</body>
+</html>

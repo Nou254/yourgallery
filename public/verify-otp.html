@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify OTP - YourGallery</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="shortcut icon" href="/favicon.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">Email Verification</h1>
+        <form id="otpForm">
+            <label>Enter OTP Code:</label>
+            <input type="text" id="otp" placeholder="6-digit code" required maxlength="6" pattern="[0-9]{6}">
+            <button type="submit">Verify Email</button>
+            <button type="button" id="resendBtn" style="background: #6c757d; margin-top: 0.5rem;">Resend OTP</button>
+        </form>
+        <div id="message" class="text-center" style="margin-top: 1rem;"></div>
+        <p class="text-center"><a href="/">Back to Home</a></p>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const purpose = params.get('purpose') || 'verification';
+
+        document.getElementById('otpForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const otp = document.getElementById('otp').value;
+            const res = await fetch('/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `otp=${otp}`
+            });
+            if (res.redirected) {
+                window.location.href = res.url;
+            } else {
+                const text = await res.text();
+                document.getElementById('message').innerHTML = `<div class="alert alert-error">${text}</div>`;
+            }
+        });
+
+        document.getElementById('resendBtn').addEventListener('click', async () => {
+            const res = await fetch('/resend-otp', { method: 'POST' });
+            const data = await res.json();
+            alert(data.message || 'OTP resent successfully');
+        });
+    </script>
+</body>
+</html>
