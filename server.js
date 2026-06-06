@@ -47,29 +47,30 @@ async function testDatabaseConnection() {
 }
 
 // ========================================
-// EMAIL TRANSPORTER (SMTP) - IMPROVED TIMEOUTS
+// EMAIL TRANSPORTER (SMTP) - NON-CRITICAL
 // ========================================
-const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.EMAIL_PORT) || 587,
-    secure: process.env.EMAIL_SECURE === 'true',
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    },
-    tls: { rejectUnauthorized: false },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000
-});
+let transporter = null;
+let emailEnabled = false;
 
-transporter.verify((error, success) => {
-    if (error) {
-        console.error('Email error:', error.message);
-    } else {
-        console.log('Email service ready');
-    }
-});
+try {
+    transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.EMAIL_PORT) || 587,
+        secure: process.env.EMAIL_SECURE === 'true',
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+        },
+        tls: { rejectUnauthorized: false },
+        connectionTimeout: 5000,
+        greetingTimeout: 5000
+    });
+    
+    emailEnabled = true;
+    console.log('Email service configured');
+} catch (error) {
+    console.log('Email service disabled:', error.message);
+}
 
 // ========================================
 // MIDDLEWARE
@@ -326,6 +327,11 @@ function generateOTP() {
 }
 
 async function sendEmail(to, subject, text, html) {
+    if (!emailEnabled || !transporter) {
+        console.log(`Email not sent to ${to} (service disabled)`);
+        return false;
+    }
+    
     try {
         const info = await transporter.sendMail({
             from: `"YourGallery" <${process.env.EMAIL_USER}>`,
@@ -711,7 +717,16 @@ app.post('/upload', isAuthenticated, uploadPhoto.single('photo'), (req, res) => 
         });
 });
 
+// ========================================
+// LOGOUT ROUTES
+// ========================================
 app.get('/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/');
+});
+
+// Admin logout route
+app.get('/admin/logout', (req, res) => {
     req.session.destroy();
     res.redirect('/');
 });
@@ -845,7 +860,9 @@ async function startServer() {
         console.log(`Main website:  http://localhost:${PORT}`);
         console.log(`Login page:    http://localhost:${PORT}/login`);
         console.log(`Admin access:  Login with admin credentials at /login`);
-        console.log(`Email service: ${process.env.EMAIL_HOST ? 'Configured' : 'Not configured'}`);
+        console.log(`Admin logout:  http://localhost:${PORT}/admin/logout`);
+        console.log(`User logout:   http://localhost:${PORT}/logout`);
+        console.log(`Email service: ${emailEnabled ? 'Enabled' : 'Disabled'}`);
         console.log(`Backup interval: Every ${BACKUP_INTERVAL_HOURS} hours`);
         console.log(`Database: Cloud MySQL (SSL Enabled)`);
         console.log(`========================================\n`);
