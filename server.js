@@ -47,7 +47,7 @@ async function testDatabaseConnection() {
 }
 
 // ========================================
-// EMAIL TRANSPORTER (SMTP)
+// EMAIL TRANSPORTER (SMTP) - IMPROVED TIMEOUTS
 // ========================================
 const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST || 'smtp.gmail.com',
@@ -57,7 +57,10 @@ const transporter = nodemailer.createTransport({
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
     },
-    tls: { rejectUnauthorized: false }
+    tls: { rejectUnauthorized: false },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000
 });
 
 transporter.verify((error, success) => {
@@ -421,6 +424,11 @@ app.post('/register', uploadProfile.single('profile_pic'), async (req, res) => {
         const otp = generateOTP();
         await saveOTP(email, otp, 'verification');
         
+        // DISPLAY OTP IN CONSOLE FOR TESTING
+        console.log('\n========================================');
+        console.log(`🔐 OTP FOR ${email}: ${otp}`);
+        console.log('========================================\n');
+        
         const html = `
             <!DOCTYPE html>
             <html>
@@ -444,9 +452,13 @@ app.post('/register', uploadProfile.single('profile_pic'), async (req, res) => {
             </html>
         `;
         
-        await sendEmail(email, 'Verify Your Email - YourGallery', `Your OTP: ${otp}`, html);
+        // SEND EMAIL IN BACKGROUND - DON'T WAIT FOR IT
+        sendEmail(email, 'Verify Your Email - YourGallery', `Your OTP: ${otp}`, html)
+            .then(() => console.log(`✓ Email sent to ${email}`))
+            .catch(err => console.error(`✗ Failed to send email to ${email}:`, err.message));
         
-        console.log(`Registration data cached for ${email}. Redirecting to OTP verification.`);
+        console.log(`Registration cached for ${email}. Redirecting immediately.`);
+        req.session.pendingEmail = email;
         return res.redirect('/verify-otp?purpose=verification');
         
     } catch (err) {
@@ -529,8 +541,12 @@ app.post('/resend-otp', async (req, res) => {
     const otp = generateOTP();
     await saveOTP(email, otp, req.session.pendingUser ? 'verification' : 'reset');
     
+    console.log(`Resent OTP for ${email}: ${otp}`);
+    
     const html = `<h2>Your New OTP</h2><p>Your new OTP is: <strong>${otp}</strong></p><p>Valid for 15 minutes.</p>`;
-    await sendEmail(email, 'Your New OTP - YourGallery', `Your OTP: ${otp}`, html);
+    sendEmail(email, 'Your New OTP - YourGallery', `Your OTP: ${otp}`, html)
+        .then(() => console.log(`Resent email to ${email}`))
+        .catch(err => console.error(`Failed to resend email:`, err.message));
     
     res.json({ message: 'OTP resent successfully' });
 });
@@ -551,8 +567,12 @@ app.post('/forgot-password', async (req, res) => {
     await saveOTP(email, otp, 'reset');
     req.session.resetEmail = email;
     
+    console.log(`Password reset OTP for ${email}: ${otp}`);
+    
     const html = `<h2>Password Reset</h2><p>Your OTP: <strong>${otp}</strong></p><p>Valid for 15 minutes.</p>`;
-    await sendEmail(email, 'Reset Your Password - YourGallery', `Your OTP: ${otp}`, html);
+    sendEmail(email, 'Reset Your Password - YourGallery', `Your OTP: ${otp}`, html)
+        .then(() => console.log(`Reset email sent to ${email}`))
+        .catch(err => console.error(`Failed to send reset email:`, err.message));
     
     res.redirect('/verify-otp?purpose=reset');
 });
